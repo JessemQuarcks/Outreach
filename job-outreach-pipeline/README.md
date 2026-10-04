@@ -44,15 +44,18 @@ The pipeline consists of three core phases that can be run manually or triggered
 Follow these steps to get your own job outreach campaign running:
 
 ### 1. Clone & Install Dependencies
-Clone this repository to your machine. Make sure you have Python 3.10+ installed. Install the required libraries:
+Make sure you have Python 3.10+ installed. From the repository directory, create an isolated environment and install the dependencies:
 ```bash
-pip install requests reportlab
+py -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
 ```
+If PowerShell blocks activation, use `.\.venv\Scripts\python.exe -m pip install -r requirements.txt` and run the pipeline with `.\.venv\Scripts\python.exe`.
 
 ### 2. Configure Credentials
 Copy the example environment file:
 ```bash
-cp .env.example .env
+Copy-Item .env.example .env
 ```
 Open `.env` and fill in your details:
 *   **`EXA_API_KEY`:** Get a key from [Exa.ai](https://exa.ai) (1000 free searches/month).
@@ -71,8 +74,9 @@ Open `.env` and fill in your details:
 ### 4. Create the Target Queue
 Copy the database template to start fresh:
 ```bash
-cp outreach_queue.example.csv outreach_queue.csv
+Copy-Item outreach_queue.example.csv outreach_queue.csv
 ```
+The template contains a placeholder company; remove or replace it before using the queue for a real campaign.
 
 ---
 
