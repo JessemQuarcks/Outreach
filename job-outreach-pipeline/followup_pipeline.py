@@ -48,8 +48,7 @@ def get_followup_candidates():
     queue = load_queue()
     candidates = []
     
-    # We follow up on emails sent on or before 6 days ago (July 4, 2026)
-    today = datetime.strptime("2026-07-10", "%Y-%m-%d")
+    today = datetime.now()
     threshold_date = today - timedelta(days=6)
     
     for r in queue:
