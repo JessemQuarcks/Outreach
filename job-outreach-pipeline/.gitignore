@@ -7,6 +7,7 @@
 !README.md
 !.env.example
 !outreach_queue.example.csv
+!requirements.txt
 
 # Whitelist pipeline core scripts
 !apify_scraper.py
