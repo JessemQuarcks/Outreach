@@ -276,3 +276,45 @@ async function loadLogs() {
 }
 $("#logs-refresh").addEventListener("click", loadLogs);
 
+/* ---------- Settings ---------- */
+async function loadSettings() {
+  let data;
+  try { data = await api("/api/config"); }
+  catch (e) { toast(e.message, true); return; }
+  const cfg = data.config || {};
+  const form = $("#settings-form");
+  Object.entries(cfg).forEach(([k, v]) => {
+    const input = form.elements[k];
+    if (!input) return;
+    if (v.secret) {
+      input.value = "";
+      input.placeholder = v.set ? "•••••••• (saved — leave blank to keep)" : input.placeholder;
+    } else {
+      input.value = v.value || "";
+    }
+  });
+  $$(".set-tag[data-tag]").forEach(tag => {
+    const k = tag.dataset.tag;
+    const set = cfg[k] && cfg[k].set;
+    tag.textContent = set ? "set" : "not set";
+    tag.className = "set-tag " + (set ? "yes" : "no");
+  });
+  const cvTag = $("#cv-status");
+  cvTag.textContent = data.cv_exists ? "file found" : "file missing";
+  cvTag.className = "set-tag " + (data.cv_exists ? "yes" : "no");
+}
+
+$("#settings-form").addEventListener("submit", async e => {
+  e.preventDefault();
+  const form = e.target;
+  const payload = {};
+  ["EXA_API_KEY", "APIFY_API_TOKEN", "HUNTER_API_KEY", "PROSPEO_API_KEY",
+   "SENDER_EMAIL", "GMAIL_APP_PASSWORD", "CV_PATH"].forEach(k => { payload[k] = form.elements[k].value; });
+  try {
+    await postJSON("/api/config", payload);
+    const msg = $("#settings-msg"); msg.textContent = "✓ Saved";
+    setTimeout(() => (msg.textContent = ""), 2500);
+    await loadSettings();
+  } catch (err) { toast(err.message, true); }
+});
+
