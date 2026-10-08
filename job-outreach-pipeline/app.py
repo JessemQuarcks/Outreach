@@ -355,3 +355,35 @@ def api_queue_bulk():
     save_queue(queue)
     return jsonify({"ok": True, "changed": changed})
 
+
+# --------------------------------------------------------------------------
+# API: credentials / settings
+# --------------------------------------------------------------------------
+@app.route("/api/config", methods=["GET"])
+def api_config_get():
+    env = read_env()
+    out = {}
+    for k in ENV_KEYS:
+        v = env.get(k, "")
+        if k in SECRET_KEYS:
+            # Never send secrets back to the browser; just say whether it's set.
+            out[k] = {"set": bool(v) and not v.lower().startswith(("your_", "xxxx")), "secret": True}
+        else:
+            out[k] = {"value": v, "secret": False}
+    return jsonify({"config": out, "cv_exists": bool(cv_path()) and os.path.exists(cv_path())})
+
+
+@app.route("/api/config", methods=["POST"])
+def api_config_set():
+    data = request.get_json(force=True) or {}
+    new_values = {}
+    for k in ENV_KEYS:
+        if k in data:
+            val = (data[k] or "").strip()
+            # For secrets, an empty submission means "leave unchanged".
+            if k in SECRET_KEYS and val == "":
+                continue
+            new_values[k] = val
+    write_env(new_values)
+    return jsonify({"ok": True})
+
