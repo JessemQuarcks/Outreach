@@ -121,3 +121,54 @@ Pick an action on the left to get started.</pre>
       </div>
     </section>
 
+    <!-- QUEUE -->
+    <section class="view" id="view-queue">
+      <header class="view-head">
+        <h1>Queue</h1>
+        <p class="muted">Your target companies. Edit any cell inline, approve targets, or add a company manually.</p>
+      </header>
+
+      <div class="toolbar">
+        <input id="queue-filter" class="search-input" type="text" placeholder="Filter by name, email, status…" />
+        <div class="spacer"></div>
+        <button class="ghost-btn" id="approve-scraped">✓ Approve all with email</button>
+        <button class="primary-btn" id="add-company-btn">+ Add company</button>
+      </div>
+
+      <div class="table-wrap">
+        <table class="data-table" id="queue-table">
+          <thead>
+            <tr>
+              <th>Company</th><th>Website</th><th>Email</th><th>Type</th>
+              <th>Recipient</th><th>Status</th><th>Added</th><th>Sent</th><th></th>
+            </tr>
+          </thead>
+          <tbody id="queue-body"></tbody>
+        </table>
+        <div id="queue-empty" class="empty hidden">No companies yet. Run a search or add one manually.</div>
+      </div>
+    </section>
+
+    <!-- FOLLOW-UPS -->
+    <section class="view" id="view-followups">
+      <header class="view-head">
+        <h1>Follow-ups</h1>
+        <p class="muted">In-thread check-ins for companies emailed 6+ days ago. Preview first, then send live (max 10/day).</p>
+      </header>
+      <div class="toolbar">
+        <button class="ghost-btn" id="followup-refresh">↻ Refresh candidates</button>
+        <div class="spacer"></div>
+        <button class="danger-btn" id="followup-send">Send follow-ups (live)…</button>
+      </div>
+      <div class="card">
+        <h3>Eligible candidates <span id="followup-count" class="count-badge">0</span></h3>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Company</th><th>Email</th><th>Originally sent</th></tr></thead>
+            <tbody id="followup-body"></tbody>
+          </table>
+          <div id="followup-empty" class="empty hidden">No one is due for a follow-up right now.</div>
+        </div>
+      </div>
+    </section>
+
