@@ -228,3 +228,42 @@ def compute_stats(queue):
             no_email += 1
     return stats, no_email
 
+
+# --------------------------------------------------------------------------
+# API: status / dashboard
+# --------------------------------------------------------------------------
+@app.route("/api/status")
+def api_status():
+    queue = load_queue()
+    stats, no_email = compute_stats(queue)
+    env = read_env()
+
+    def is_set(key):
+        v = env.get(key, "")
+        placeholders = ("your_", "xxxx", "@gmail.com") if key == "SENDER_EMAIL" else ("your_", "xxxx")
+        if not v:
+            return False
+        low = v.lower()
+        if key == "SENDER_EMAIL":
+            return "your_gmail_address_here" not in low
+        return not any(low.startswith(p) or p in low for p in ("your_", "xxxx"))
+
+    credentials = {k: is_set(k) for k in ENV_KEYS if k != "CV_PATH"}
+
+    letters = []
+    if os.path.isdir(LETTERS_DIR):
+        letters = [f for f in os.listdir(LETTERS_DIR) if f.lower().endswith(".pdf")]
+
+    cv = cv_path()
+    return jsonify({
+        "total": len(queue),
+        "stats": stats,
+        "no_email": no_email,
+        "credentials": credentials,
+        "ready_to_send": stats.get("Approved", 0),
+        "letters_count": len(letters),
+        "cv_path": cv,
+        "cv_exists": bool(cv) and os.path.exists(cv),
+        "job": job_payload(),
+    })
+
