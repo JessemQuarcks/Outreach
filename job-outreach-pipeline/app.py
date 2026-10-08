@@ -206,3 +206,25 @@ def reload_config():
 def cv_path():
     return getattr(pipeline, "CV_PATH", "")
 
+
+# --------------------------------------------------------------------------
+# Queue helpers
+# --------------------------------------------------------------------------
+def load_queue():
+    return pipeline.load_queue()
+
+
+def save_queue(queue):
+    pipeline.save_queue(queue)
+
+
+def compute_stats(queue):
+    stats = {s: 0 for s in STATUS_VALUES}
+    no_email = 0
+    for r in queue:
+        st = r.get("status", "Pending")
+        stats[st] = stats.get(st, 0) + 1
+        if not r.get("email"):
+            no_email += 1
+    return stats, no_email
+
