@@ -387,3 +387,58 @@ def api_config_set():
     write_env(new_values)
     return jsonify({"ok": True})
 
+
+# --------------------------------------------------------------------------
+# API: generated letters
+# --------------------------------------------------------------------------
+@app.route("/api/letters")
+def api_letters():
+    items = []
+    if os.path.isdir(LETTERS_DIR):
+        for f in sorted(os.listdir(LETTERS_DIR)):
+            if f.lower().endswith(".pdf"):
+                full = os.path.join(LETTERS_DIR, f)
+                items.append({
+                    "name": f,
+                    "size_kb": round(os.path.getsize(full) / 1024, 1),
+                    "modified": datetime.fromtimestamp(os.path.getmtime(full)).strftime("%Y-%m-%d %H:%M"),
+                })
+    return jsonify({"letters": items})
+
+
+@app.route("/api/letters/<path:filename>")
+def api_letter_file(filename):
+    if not os.path.isdir(LETTERS_DIR):
+        abort(404)
+    return send_from_directory(LETTERS_DIR, filename, as_attachment=False)
+
+
+# --------------------------------------------------------------------------
+# API: send log history
+# --------------------------------------------------------------------------
+@app.route("/api/logs")
+def api_logs():
+    rows = []
+    if os.path.exists(LOG_FILE):
+        with open(LOG_FILE, "r", encoding="utf-8", newline="") as f:
+            rows = list(csv.DictReader(f))
+    rows.reverse()  # newest first
+    return jsonify({"rows": rows})
+
+
+# --------------------------------------------------------------------------
+# API: follow-up preview (dry-run candidates, no send)
+# --------------------------------------------------------------------------
+@app.route("/api/followups/preview")
+def api_followups_preview():
+    try:
+        candidates = followup.get_followup_candidates()
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+    out = [{
+        "company_name": c.get("company_name", ""),
+        "email": c.get("email", ""),
+        "date_sent": c.get("date_sent", ""),
+    } for c in candidates]
+    return jsonify({"ok": True, "candidates": out, "count": len(out)})
+
