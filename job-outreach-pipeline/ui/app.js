@@ -108,3 +108,112 @@ async function loadDashboard() {
   }
 }
 
+/* ---------- Queue ---------- */
+let QUEUE_CACHE = [];
+async function loadQueue() {
+  let data;
+  try { data = await api("/api/queue"); }
+  catch (e) { toast(e.message, true); return; }
+  QUEUE_CACHE = data.rows;
+  renderQueue();
+  updateSendNote();
+}
+
+function renderQueue() {
+  const filter = ($("#queue-filter").value || "").toLowerCase();
+  const body = $("#queue-body");
+  const statuses = ["Pending", "Approved", "Sent", "Failed", "Skipped", "Followup-Sent"];
+  const rows = QUEUE_CACHE.filter(r =>
+    !filter || [r.company_name, r.email, r.status, r.website].some(v => (v || "").toLowerCase().includes(filter)));
+
+  $("#queue-empty").classList.toggle("hidden", QUEUE_CACHE.length !== 0);
+  body.innerHTML = rows.map(r => {
+    const opts = statuses.map(s => `<option value="${s}" ${s === r.status ? "selected" : ""}>${s}</option>`).join("");
+    return `<tr data-i="${r._i}">
+      <td><input class="cell-input" data-f="company_name" value="${esc(r.company_name)}"></td>
+      <td><input class="cell-input" data-f="website" value="${esc(r.website)}"></td>
+      <td><input class="cell-input" data-f="email" value="${esc(r.email)}" placeholder="—"></td>
+      <td><input class="cell-input" data-f="company_type" value="${esc(r.company_type)}" style="min-width:110px"></td>
+      <td><input class="cell-input" data-f="recipient_name" value="${esc(r.recipient_name)}"></td>
+      <td><select class="status-select" data-status="${esc(r.status)}">${opts}</select></td>
+      <td class="muted small">${esc(r.date_added)}</td>
+      <td class="muted small">${esc((r.date_sent || "").split("|")[0])}</td>
+      <td><button class="row-del" title="Delete">✕</button></td>
+    </tr>`;
+  }).join("");
+}
+
+function esc(s) { return String(s == null ? "" : s).replace(/"/g, "&quot;").replace(/</g, "&lt;"); }
+
+$("#queue-filter").addEventListener("input", renderQueue);
+
+$("#queue-body").addEventListener("change", async e => {
+  const tr = e.target.closest("tr");
+  if (!tr) return;
+  const i = parseInt(tr.dataset.i, 10);
+  if (e.target.matches(".cell-input")) {
+    const payload = { _i: i, [e.target.dataset.f]: e.target.value };
+    try { await postJSON("/api/queue/update", payload); toast("Saved"); }
+    catch (err) { toast(err.message, true); }
+  } else if (e.target.matches(".status-select")) {
+    e.target.dataset.status = e.target.value;
+    try {
+      await postJSON("/api/queue/update", { _i: i, status: e.target.value });
+      const row = QUEUE_CACHE.find(r => r._i === i); if (row) row.status = e.target.value;
+      updateSendNote(); toast("Status updated");
+    } catch (err) { toast(err.message, true); }
+  }
+});
+
+$("#queue-body").addEventListener("click", async e => {
+  if (!e.target.matches(".row-del")) return;
+  const tr = e.target.closest("tr");
+  const i = parseInt(tr.dataset.i, 10);
+  const row = QUEUE_CACHE.find(r => r._i === i);
+  confirmAction("Delete company?", `Remove “${row ? row.company_name : "this company"}” from the queue? This can't be undone.`, async () => {
+    try { await postJSON("/api/queue/delete", { _i: i }); await loadQueue(); toast("Deleted"); }
+    catch (err) { toast(err.message, true); }
+  });
+});
+
+$("#approve-scraped").addEventListener("click", () => {
+  confirmAction("Approve all with an email?",
+    "Every Pending company that has an email address will be marked Approved and become eligible to send. Continue?",
+    async () => {
+      try {
+        const r = await postJSON("/api/queue/bulk", { to_status: "Approved", from_status: "Pending", require_email: true });
+        await loadQueue(); toast(`${r.changed} companies approved`);
+      } catch (err) { toast(err.message, true); }
+    }, "Approve");
+});
+
+/* Add company modal */
+$("#add-company-btn").addEventListener("click", () => openModal("add-modal"));
+$("#add-save").addEventListener("click", async () => {
+  const name = $("#add-name").value.trim();
+  $("#add-err").textContent = "";
+  if (!name) { $("#add-err").textContent = "Company name is required."; return; }
+  try {
+    await postJSON("/api/queue/add", {
+      company_name: name,
+      website: $("#add-website").value,
+      email: $("#add-email").value,
+      recipient_name: $("#add-recipient").value,
+      company_type: $("#add-type").value,
+      company_address: $("#add-address").value,
+    });
+    closeModals();
+    ["add-name", "add-website", "add-email", "add-recipient", "add-address"].forEach(id => $("#" + id).value = "");
+    await loadQueue(); toast("Company added");
+  } catch (err) { $("#add-err").textContent = err.message; }
+});
+
+function updateSendNote() {
+  const approved = QUEUE_CACHE.filter(r => r.status === "Approved" && r.email).length;
+  const note = $("#send-ready-note");
+  if (!note) return;
+  note.textContent = approved
+    ? `${approved} compan${approved === 1 ? "y is" : "ies are"} approved and ready to send (max 15 per run).`
+    : "No companies are approved yet. Approve targets on the Queue page first.";
+}
+
