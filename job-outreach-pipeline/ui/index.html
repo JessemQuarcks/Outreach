@@ -68,3 +68,56 @@
       </div>
     </section>
 
+    <!-- ACTIONS -->
+    <section class="view" id="view-actions">
+      <header class="view-head">
+        <h1>Run Pipeline</h1>
+        <p class="muted">Run each phase with one click. Live output appears in the console on the right.</p>
+      </header>
+      <div class="actions-layout">
+        <div class="action-list">
+          <div class="action-card">
+            <div class="action-top"><span class="step-badge">1</span><h3>Search for companies</h3></div>
+            <p class="muted">Semantic web search (Exa) adds new companies to your queue as <b>Pending</b>.</p>
+            <label class="field">Search query
+              <input id="search-query" type="text" placeholder="e.g. fintech startups in Accra Ghana" />
+            </label>
+            <label class="field inline">Results limit
+              <input id="search-limit" type="number" min="1" max="50" value="15" />
+            </label>
+            <button class="primary-btn" data-action="search">Run search</button>
+          </div>
+
+          <div class="action-card">
+            <div class="action-top"><span class="step-badge">2</span><h3>Scrape contact emails</h3></div>
+            <p class="muted">Crawls pending companies' sites (Apify) to harvest emails. Runs up to 5 at a time — repeat as needed.</p>
+            <button class="primary-btn" data-action="scrape">Run scrape</button>
+          </div>
+
+          <div class="action-card">
+            <div class="action-top"><span class="step-badge">3</span><h3>Generate cover letters</h3></div>
+            <p class="muted">Builds tailored PDF cover letters for every company with an email. Review them under <b>Letters</b>.</p>
+            <button class="primary-btn" data-action="generate">Generate letters</button>
+          </div>
+
+          <div class="action-card danger-card">
+            <div class="action-top"><span class="step-badge">4</span><h3>Send outreach emails</h3></div>
+            <p class="muted">Sends to up to <b>15</b> companies marked <b>Approved</b>, then marks them <b>Sent</b>.
+              A 30–60s delay runs between emails, so this can take a while.</p>
+            <p class="warn-inline" id="send-ready-note"></p>
+            <button class="danger-btn" data-action="send">Send approved emails…</button>
+          </div>
+        </div>
+
+        <div class="console-wrap">
+          <div class="console-head">
+            <div><span id="job-state" class="pill idle">Idle</span> <span id="job-name" class="muted"></span></div>
+            <button id="console-clear" class="ghost-btn">Clear</button>
+          </div>
+          <pre id="console" class="console">No job has run yet.
+Pick an action on the left to get started.</pre>
+          <div class="console-foot muted" id="job-times"></div>
+        </div>
+      </div>
+    </section>
+
