@@ -172,3 +172,74 @@ Pick an action on the left to get started.</pre>
       </div>
     </section>
 
+    <!-- LETTERS -->
+    <section class="view" id="view-letters">
+      <header class="view-head">
+        <h1>Generated Letters</h1>
+        <p class="muted">Review the tailored cover-letter PDFs before sending. Click any letter to open it.</p>
+      </header>
+      <div class="toolbar">
+        <button class="ghost-btn" id="letters-refresh">↻ Refresh</button>
+      </div>
+      <div id="letters-grid" class="letters-grid"></div>
+      <div id="letters-empty" class="empty hidden">No letters yet. Run “Generate cover letters” on the pipeline page.</div>
+    </section>
+
+    <!-- LOGS -->
+    <section class="view" id="view-logs">
+      <header class="view-head">
+        <h1>Send Log</h1>
+        <p class="muted">History of every email the pipeline attempted, newest first.</p>
+      </header>
+      <div class="toolbar"><button class="ghost-btn" id="logs-refresh">↻ Refresh</button></div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Date</th><th>Company</th><th>Email</th><th>Status</th><th>Cover letter</th></tr></thead>
+          <tbody id="logs-body"></tbody>
+        </table>
+        <div id="logs-empty" class="empty hidden">Nothing sent yet.</div>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section class="view" id="view-settings">
+      <header class="view-head">
+        <h1>Settings</h1>
+        <p class="muted">Credentials are stored locally in <code>.env</code> and never leave your machine. Leave a key blank to keep the current value.</p>
+      </header>
+      <form id="settings-form" class="card settings-card">
+        <h3>Lead discovery &amp; enrichment</h3>
+        <label class="field">EXA_API_KEY <span class="set-tag" data-tag="EXA_API_KEY"></span>
+          <input name="EXA_API_KEY" type="password" placeholder="Exa.ai API key" autocomplete="off" />
+        </label>
+        <label class="field">APIFY_API_TOKEN <span class="set-tag" data-tag="APIFY_API_TOKEN"></span>
+          <input name="APIFY_API_TOKEN" type="password" placeholder="Apify token" autocomplete="off" />
+        </label>
+        <label class="field">HUNTER_API_KEY <span class="muted small">optional</span> <span class="set-tag" data-tag="HUNTER_API_KEY"></span>
+          <input name="HUNTER_API_KEY" type="password" placeholder="Hunter.io key" autocomplete="off" />
+        </label>
+        <label class="field">PROSPEO_API_KEY <span class="muted small">optional</span> <span class="set-tag" data-tag="PROSPEO_API_KEY"></span>
+          <input name="PROSPEO_API_KEY" type="password" placeholder="Prospeo key" autocomplete="off" />
+        </label>
+
+        <h3>Email sending</h3>
+        <label class="field">SENDER_EMAIL
+          <input name="SENDER_EMAIL" type="text" placeholder="you@gmail.com" autocomplete="off" />
+        </label>
+        <label class="field">GMAIL_APP_PASSWORD <span class="set-tag" data-tag="GMAIL_APP_PASSWORD"></span>
+          <input name="GMAIL_APP_PASSWORD" type="password" placeholder="16-character Google App Password" autocomplete="off" />
+          <small class="muted">Needs 2-Step Verification. Create one at myaccount.google.com/apppasswords</small>
+        </label>
+
+        <h3>Resume / CV</h3>
+        <label class="field">CV_PATH <span id="cv-status" class="set-tag"></span>
+          <input name="CV_PATH" type="text" placeholder="Abraham_Gyamfi_Resume.pdf" autocomplete="off" />
+          <small class="muted">Filename of your CV PDF in the project folder, attached to every email.</small>
+        </label>
+
+        <div class="form-actions">
+          <button type="submit" class="primary-btn">Save settings</button>
+          <span id="settings-msg" class="save-msg"></span>
+        </div>
+      </form>
+    </section>
