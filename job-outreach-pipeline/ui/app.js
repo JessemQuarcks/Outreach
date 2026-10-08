@@ -318,3 +318,121 @@ $("#settings-form").addEventListener("submit", async e => {
   } catch (err) { toast(err.message, true); }
 });
 
+/* ---------- Pipeline actions + job polling ---------- */
+document.addEventListener("click", async e => {
+  const btn = e.target.closest("[data-action]");
+  if (!btn) return;
+  const action = btn.dataset.action;
+
+  if (action === "search") {
+    const query = $("#search-query").value.trim();
+    if (!query) { toast("Enter a search query first.", true); return; }
+    const limit = parseInt($("#search-limit").value, 10) || 15;
+    runAction("/api/action/search", { query, limit });
+  } else if (action === "scrape") {
+    runAction("/api/action/scrape", {});
+  } else if (action === "generate") {
+    runAction("/api/action/generate", {});
+  } else if (action === "send") {
+    const approved = QUEUE_CACHE.filter(r => r.status === "Approved" && r.email).length;
+    confirmAction("Send real emails now?",
+      `This sends live outreach emails (CV + cover letter) to up to 15 Approved companies${approved ? ` — ${approved} queued` : ""}. ` +
+      `A 30–60s delay runs between each, so it may take several minutes. This cannot be undone.`,
+      () => runAction("/api/action/send", {}), "Send emails");
+  }
+});
+
+async function runAction(path, body) {
+  try {
+    await postJSON(path, body);
+    $("#console").textContent = "";
+    startPolling();
+    toast("Job started");
+  } catch (err) { toast(err.message, true); }
+}
+
+let pollTimer = null;
+function startPolling() {
+  stopPolling();
+  pollJob();
+  pollTimer = setInterval(pollJob, 1200);
+}
+function stopPolling() { if (pollTimer) { clearInterval(pollTimer); pollTimer = null; } }
+
+async function pollJob() {
+  let j;
+  try { j = await api("/api/job"); }
+  catch (_) { return; }
+  renderJob(j);
+  if (j.status !== "running") {
+    stopPolling();
+    // Refresh whatever view might be affected.
+    refreshAfterJob();
+  }
+}
+
+function renderJob(j) {
+  const stateEl = $("#job-state");
+  const map = { idle: ["Idle", "idle"], running: ["Running…", "running"], done: ["Done", "done"], error: ["Error", "error"] };
+  const [label, cls] = map[j.status] || map.idle;
+  stateEl.textContent = label;
+  stateEl.className = "pill " + cls;
+  $("#job-name").textContent = j.name ? "· " + j.name : "";
+  const con = $("#console");
+  const atBottom = con.scrollHeight - con.scrollTop - con.clientHeight < 40;
+  con.textContent = j.log || (j.status === "running" ? "Starting…" : "No output.");
+  if (atBottom) con.scrollTop = con.scrollHeight;
+  $("#job-times").textContent = j.started ? `Started ${j.started}${j.finished ? " · finished " + j.finished : ""}` : "";
+}
+
+function refreshAfterJob() {
+  const active = $(".view.active");
+  if (!active) return;
+  const id = active.id.replace("view-", "");
+  if (id === "queue") loadQueue();
+  if (id === "letters") loadLetters();
+  if (id === "logs") loadLogs();
+  if (id === "followups") loadFollowups();
+  if (id === "dashboard") loadDashboard();
+  // Keep send-readiness note fresh regardless.
+  api("/api/queue").then(d => { QUEUE_CACHE = d.rows; updateSendNote(); }).catch(() => {});
+}
+
+$("#console-clear").addEventListener("click", () => {
+  $("#console").textContent = "Console cleared. Run an action to see live output.";
+});
+
+/* ---------- Modals ---------- */
+function openModal(id) { $("#" + id).classList.remove("hidden"); }
+function closeModals() { $$(".modal-overlay").forEach(m => m.classList.add("hidden")); }
+document.addEventListener("click", e => {
+  if (e.target.matches("[data-close-modal]") || e.target.classList.contains("modal-overlay")) closeModals();
+});
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeModals(); });
+
+let confirmCb = null;
+function confirmAction(title, body, cb, okLabel) {
+  $("#confirm-title").textContent = title;
+  $("#confirm-body").textContent = body;
+  $("#confirm-ok").textContent = okLabel || "Confirm";
+  confirmCb = cb;
+  openModal("confirm-modal");
+}
+$("#confirm-ok").addEventListener("click", () => {
+  closeModals();
+  const cb = confirmCb; confirmCb = null;
+  if (cb) cb();
+});
+
+/* ---------- Boot ---------- */
+(async function boot() {
+  showView("dashboard");
+  // Resume polling if a job is already running (e.g. after a page refresh).
+  try {
+    const j = await api("/api/job");
+    if (j.status === "running") { showView("actions"); startPolling(); }
+  } catch (_) {
+    $("#conn-dot").className = "dot bad";
+    $("#conn-text").textContent = "offline";
+  }
+})();
