@@ -55,3 +55,56 @@ $("#theme-toggle").addEventListener("click", () => {
   localStorage.setItem("theme", cur);
 });
 
+/* ---------- Dashboard ---------- */
+const STAT_META = [
+  { key: "total", label: "Total companies", accent: "#77216F", from: "total" },
+  { key: "Pending", label: "Pending", accent: "#8a8f9c" },
+  { key: "Approved", label: "Approved", accent: "#1a9e5f", sub: "ready to send" },
+  { key: "Sent", label: "Sent", accent: "#77216F" },
+  { key: "Followup-Sent", label: "Followed up", accent: "#E95420" },
+  { key: "Failed", label: "Failed", accent: "#d9402b" },
+  { key: "Skipped", label: "Skipped", accent: "#8a8f9c" },
+];
+
+async function loadDashboard() {
+  let s;
+  try { s = await api("/api/status"); }
+  catch (e) { toast(e.message, true); return; }
+
+  const grid = $("#stat-grid");
+  grid.innerHTML = STAT_META.map(m => {
+    const val = m.from === "total" ? s.total : (s.stats[m.key] || 0);
+    let sub = m.sub || "";
+    if (m.key === "Pending" && s.no_email) sub = `${s.no_email} without an email`;
+    return `<div class="stat" style="--accent:${m.accent}">
+      <div class="num">${val}</div>
+      <div class="label">${m.label}</div>
+      ${sub ? `<div class="sub">${sub}</div>` : ""}
+    </div>`;
+  }).join("");
+
+  // Setup checklist
+  const creds = s.credentials || {};
+  const items = [
+    ["EXA_API_KEY", "Exa search key", creds.EXA_API_KEY],
+    ["APIFY_API_TOKEN", "Apify scraper token", creds.APIFY_API_TOKEN],
+    ["SENDER_EMAIL", "Sender email", creds.SENDER_EMAIL],
+    ["GMAIL_APP_PASSWORD", "Gmail app password", creds.GMAIL_APP_PASSWORD],
+    ["CV", `CV file (${s.cv_path || "not set"})`, s.cv_exists],
+  ];
+  $("#checklist").innerHTML = items.map(([k, label, ok]) =>
+    `<li><span class="check-ic ${ok ? "yes" : "no"}">${ok ? "✓" : "–"}</span>
+      <span>${label}</span></li>`).join("");
+
+  const missing = items.filter(i => !i[2]).length;
+  const banner = $("#setup-banner");
+  if (missing > 0) {
+    banner.className = "banner warn";
+    banner.innerHTML = `<b>${missing} setup item${missing > 1 ? "s" : ""} still needed.</b>
+      Add your API keys, email credentials and CV on the <b>Settings</b> page before running the pipeline.`;
+    banner.classList.remove("hidden");
+  } else {
+    banner.classList.add("hidden");
+  }
+}
+
