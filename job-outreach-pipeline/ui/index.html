@@ -243,3 +243,48 @@ Pick an action on the left to get started.</pre>
         </div>
       </form>
     </section>
+  </main>
+
+  <!-- Add-company modal -->
+  <div class="modal-overlay hidden" id="add-modal">
+    <div class="modal">
+      <h2>Add a company</h2>
+      <label class="field">Company name *<input id="add-name" type="text" /></label>
+      <label class="field">Website<input id="add-website" type="text" placeholder="https://…" /></label>
+      <label class="field">Email<input id="add-email" type="text" placeholder="careers@…" /></label>
+      <label class="field">Recipient name<input id="add-recipient" type="text" placeholder="The Recruiting and Technology Team" /></label>
+      <label class="field">Company type
+        <select id="add-type">
+          <option value="general_startup">general_startup</option>
+          <option value="fintech">fintech</option>
+          <option value="consultancy">consultancy</option>
+          <option value="isp">isp</option>
+          <option value="bank">bank</option>
+        </select>
+      </label>
+      <label class="field">Address<input id="add-address" type="text" placeholder="Accra, Ghana" /></label>
+      <div class="modal-actions">
+        <button class="ghost-btn" data-close-modal>Cancel</button>
+        <button class="primary-btn" id="add-save">Add to queue</button>
+      </div>
+      <div class="modal-err" id="add-err"></div>
+    </div>
+  </div>
+
+  <!-- Confirm modal -->
+  <div class="modal-overlay hidden" id="confirm-modal">
+    <div class="modal">
+      <h2 id="confirm-title">Are you sure?</h2>
+      <p id="confirm-body" class="muted"></p>
+      <div class="modal-actions">
+        <button class="ghost-btn" data-close-modal>Cancel</button>
+        <button class="danger-btn" id="confirm-ok">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
