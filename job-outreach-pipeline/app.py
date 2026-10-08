@@ -442,3 +442,120 @@ def api_followups_preview():
     } for c in candidates]
     return jsonify({"ok": True, "candidates": out, "count": len(out)})
 
+
+# --------------------------------------------------------------------------
+# API: actions (background jobs)
+# --------------------------------------------------------------------------
+def job_payload():
+    with JOB.lock:
+        return {
+            "name": JOB.name,
+            "status": JOB.status,
+            "log": JOB.log,
+            "started": JOB.started,
+            "finished": JOB.finished,
+            "running": JOB.status == "running",
+        }
+
+
+@app.route("/api/job")
+def api_job():
+    return jsonify(job_payload())
+
+
+def _start(name, target):
+    if JOB.is_running():
+        return jsonify({"ok": False, "error": f"A job ('{JOB.name}') is already running."}), 409
+    run_job(name, target)
+    return jsonify({"ok": True})
+
+
+@app.route("/api/action/search", methods=["POST"])
+def action_search():
+    data = request.get_json(force=True) or {}
+    query = (data.get("query") or "").strip()
+    if not query:
+        return jsonify({"ok": False, "error": "Enter a search query."}), 400
+    try:
+        limit = int(data.get("limit") or 15)
+    except (TypeError, ValueError):
+        limit = 15
+    limit = max(1, min(limit, 50))
+    return _start("Search for companies", lambda: pipeline.run_exa_search(query, limit))
+
+
+@app.route("/api/action/scrape", methods=["POST"])
+def action_scrape():
+    return _start("Scrape contact emails", pipeline.run_apify_scrape)
+
+
+@app.route("/api/action/generate", methods=["POST"])
+def action_generate():
+    return _start("Generate cover letters", pipeline.run_generate_letters)
+
+
+@app.route("/api/action/send", methods=["POST"])
+def action_send():
+    return _start("Send outreach emails", pipeline.run_send_emails)
+
+
+@app.route("/api/action/followup", methods=["POST"])
+def action_followup():
+    data = request.get_json(force=True) or {}
+    dry = bool(data.get("dry_run", True))
+    label = "Follow-up (preview)" if dry else "Follow-up (live send)"
+    return _start(label, lambda: followup.run_followups(limit=10, dry_run=dry))
+
+
+# --------------------------------------------------------------------------
+# Frontend
+# --------------------------------------------------------------------------
+@app.route("/")
+def index():
+    return Response(INDEX_HTML, mimetype="text/html")
+
+
+@app.route("/app.js")
+def appjs():
+    return Response(APP_JS, mimetype="application/javascript")
+
+
+@app.route("/style.css")
+def stylecss():
+    return Response(STYLE_CSS, mimetype="text/css")
+
+
+# The HTML/CSS/JS live in separate files loaded at import time so this script
+# stays readable. They sit next to app.py.
+def _read(name):
+    with open(os.path.join(BASE_DIR, "ui", name), "r", encoding="utf-8") as f:
+        return f.read()
+
+
+INDEX_HTML = None
+APP_JS = None
+STYLE_CSS = None
+
+
+def _load_ui():
+    global INDEX_HTML, APP_JS, STYLE_CSS
+    INDEX_HTML = _read("index.html")
+    APP_JS = _read("app.js")
+    STYLE_CSS = _read("style.css")
+
+
+if __name__ == "__main__":
+    _load_ui()
+    reload_config()
+    port = int(os.environ.get("PORT", "5000"))
+    url = f"http://127.0.0.1:{port}"
+    print("=" * 60)
+    print("  Job Outreach Pipeline — Control Panel")
+    print("=" * 60)
+    print(f"  Open your browser at:  {url}")
+    print("  Press Ctrl+C here to stop the server.")
+    print("=" * 60)
+    # Open the browser shortly after the server starts.
+    if os.environ.get("NO_BROWSER") != "1":
+        threading.Timer(1.2, lambda: webbrowser.open(url)).start()
+    app.run(host="127.0.0.1", port=port, debug=False, use_reloader=False)
