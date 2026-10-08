@@ -70,3 +70,73 @@ ENV_KEYS = [
 SECRET_KEYS = {"EXA_API_KEY", "APIFY_API_TOKEN", "HUNTER_API_KEY",
                "PROSPEO_API_KEY", "GMAIL_APP_PASSWORD"}
 
+
+# --------------------------------------------------------------------------
+# Background job runner (one job at a time, with captured live logs)
+# --------------------------------------------------------------------------
+class Job:
+    def __init__(self):
+        self.lock = threading.Lock()
+        self.name = None
+        self.status = "idle"      # idle | running | done | error
+        self.log = ""
+        self.started = None
+        self.finished = None
+        self.thread = None
+
+    def is_running(self):
+        return self.status == "running"
+
+
+JOB = Job()
+
+
+class _LogWriter(io.TextIOBase):
+    """File-like object that appends everything printed into the job log."""
+
+    def write(self, s):
+        if s:
+            with JOB.lock:
+                JOB.log += s
+        return len(s)
+
+    def flush(self):
+        pass
+
+
+def run_job(name, target):
+    """Start `target()` in a background thread, capturing its stdout/stderr."""
+    if JOB.is_running():
+        return False
+
+    with JOB.lock:
+        JOB.name = name
+        JOB.status = "running"
+        JOB.log = ""
+        JOB.started = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        JOB.finished = None
+
+    def _wrapped():
+        writer = _LogWriter()
+        old_out, old_err = sys.stdout, sys.stderr
+        sys.stdout = sys.stderr = writer
+        try:
+            target()
+            status = "done"
+        except SystemExit as e:  # some pipeline paths call sys.exit on bad config
+            print(f"\n[!] Stopped: {e}")
+            status = "error"
+        except Exception:
+            print("\n[!] The job failed with an error:\n")
+            print(traceback.format_exc())
+            status = "error"
+        finally:
+            sys.stdout, sys.stderr = old_out, old_err
+            with JOB.lock:
+                JOB.status = status
+                JOB.finished = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    JOB.thread = threading.Thread(target=_wrapped, daemon=True)
+    JOB.thread.start()
+    return True
+
