@@ -267,3 +267,91 @@ def api_status():
         "job": job_payload(),
     })
 
+
+# --------------------------------------------------------------------------
+# API: queue CRUD
+# --------------------------------------------------------------------------
+@app.route("/api/queue")
+def api_queue():
+    queue = load_queue()
+    rows = []
+    for i, r in enumerate(queue):
+        row = {f: r.get(f, "") for f in QUEUE_FIELDS}
+        row["_i"] = i
+        rows.append(row)
+    return jsonify({"rows": rows, "fields": QUEUE_FIELDS, "statuses": STATUS_VALUES})
+
+
+@app.route("/api/queue/add", methods=["POST"])
+def api_queue_add():
+    data = request.get_json(force=True) or {}
+    name = (data.get("company_name") or "").strip()
+    if not name:
+        return jsonify({"ok": False, "error": "Company name is required."}), 400
+    ok = pipeline.add_to_queue(
+        company_name=name,
+        website=(data.get("website") or "").strip(),
+        email=(data.get("email") or "").strip(),
+        company_type=(data.get("company_type") or "general_startup").strip(),
+        recipient=(data.get("recipient_name") or "The Recruiting and Technology Team").strip(),
+        address=(data.get("company_address") or "Accra, Ghana").strip(),
+    )
+    if not ok:
+        return jsonify({"ok": False, "error": "A company with that name or website already exists."}), 409
+    return jsonify({"ok": True})
+
+
+@app.route("/api/queue/update", methods=["POST"])
+def api_queue_update():
+    data = request.get_json(force=True) or {}
+    idx = data.get("_i")
+    queue = load_queue()
+    if idx is None or not (0 <= idx < len(queue)):
+        return jsonify({"ok": False, "error": "Row not found."}), 404
+    row = queue[idx]
+    for f in QUEUE_FIELDS:
+        if f in data:
+            row[f] = (data[f] or "").strip()
+    save_queue(queue)
+    return jsonify({"ok": True})
+
+
+@app.route("/api/queue/delete", methods=["POST"])
+def api_queue_delete():
+    data = request.get_json(force=True) or {}
+    idx = data.get("_i")
+    queue = load_queue()
+    if idx is None or not (0 <= idx < len(queue)):
+        return jsonify({"ok": False, "error": "Row not found."}), 404
+    queue.pop(idx)
+    save_queue(queue)
+    return jsonify({"ok": True})
+
+
+@app.route("/api/queue/bulk", methods=["POST"])
+def api_queue_bulk():
+    """Bulk set a status. Optionally scope to rows currently in `from_status`
+    and/or require a non-empty email (used for 'approve all scraped')."""
+    data = request.get_json(force=True) or {}
+    to_status = data.get("to_status")
+    from_status = data.get("from_status")       # optional filter
+    require_email = bool(data.get("require_email"))
+    indices = data.get("indices")               # optional explicit selection
+    if to_status not in STATUS_VALUES:
+        return jsonify({"ok": False, "error": "Invalid status."}), 400
+
+    queue = load_queue()
+    changed = 0
+    for i, r in enumerate(queue):
+        if indices is not None and i not in indices:
+            continue
+        if from_status and r.get("status") != from_status:
+            continue
+        if require_email and not r.get("email"):
+            continue
+        if r.get("status") != to_status:
+            r["status"] = to_status
+            changed += 1
+    save_queue(queue)
+    return jsonify({"ok": True, "changed": changed})
+
