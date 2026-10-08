@@ -217,3 +217,62 @@ function updateSendNote() {
     : "No companies are approved yet. Approve targets on the Queue page first.";
 }
 
+/* ---------- Follow-ups ---------- */
+async function loadFollowups() {
+  let data;
+  try { data = await api("/api/followups/preview"); }
+  catch (e) { toast(e.message, true); $("#followup-empty").classList.remove("hidden"); return; }
+  const list = data.candidates || [];
+  $("#followup-count").textContent = list.length;
+  $("#followup-empty").classList.toggle("hidden", list.length !== 0);
+  $("#followup-body").innerHTML = list.map(c =>
+    `<tr><td>${esc(c.company_name)}</td><td>${esc(c.email)}</td><td class="muted">${esc(c.date_sent)}</td></tr>`).join("");
+}
+$("#followup-refresh").addEventListener("click", loadFollowups);
+$("#followup-send").addEventListener("click", () => {
+  confirmAction("Send follow-up emails?",
+    "This will send live in-thread follow-up emails to up to 10 eligible companies, with a 30–60s delay between each. Continue?",
+    async () => {
+      showView("actions");
+      try { await postJSON("/api/action/followup", { dry_run: false }); startPolling(); }
+      catch (err) { toast(err.message, true); }
+    }, "Send follow-ups");
+});
+
+/* ---------- Letters ---------- */
+async function loadLetters() {
+  let data;
+  try { data = await api("/api/letters"); }
+  catch (e) { toast(e.message, true); return; }
+  const items = data.letters || [];
+  $("#letters-empty").classList.toggle("hidden", items.length !== 0);
+  $("#letters-grid").innerHTML = items.map(l =>
+    `<a class="letter-card" href="/api/letters/${encodeURIComponent(l.name)}" target="_blank" rel="noopener">
+      <div class="letter-ic">📄</div>
+      <div class="letter-name">${esc(l.name)}</div>
+      <div class="letter-meta">${l.size_kb} KB · ${esc(l.modified)}</div>
+    </a>`).join("");
+}
+$("#letters-refresh").addEventListener("click", loadLetters);
+
+/* ---------- Logs ---------- */
+async function loadLogs() {
+  let data;
+  try { data = await api("/api/logs"); }
+  catch (e) { toast(e.message, true); return; }
+  const rows = data.rows || [];
+  $("#logs-empty").classList.toggle("hidden", rows.length !== 0);
+  $("#logs-body").innerHTML = rows.map(r => {
+    const st = (r.status || "").toUpperCase();
+    const color = st === "SUCCESS" ? "var(--ok)" : "var(--danger)";
+    return `<tr>
+      <td class="muted small">${esc(r.date)}</td>
+      <td>${esc(r.company_name)}</td>
+      <td>${esc(r.email)}</td>
+      <td style="color:${color};font-weight:600">${esc(r.status)}</td>
+      <td class="muted small">${esc(r.cover_letter)}</td>
+    </tr>`;
+  }).join("");
+}
+$("#logs-refresh").addEventListener("click", loadLogs);
+
