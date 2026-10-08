@@ -17,3 +17,12 @@
 !exa_search.py
 !outreach_pipeline.py
 !followup_pipeline.py
+
+# Whitelist the web control panel (UI)
+!app.py
+!start_ui.ps1
+!start_ui.bat
+!ui/
+!ui/index.html
+!ui/style.css
+!ui/app.js
