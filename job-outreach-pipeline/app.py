@@ -140,3 +140,69 @@ def run_job(name, target):
     JOB.thread.start()
     return True
 
+
+# --------------------------------------------------------------------------
+# Config / credentials helpers
+# --------------------------------------------------------------------------
+def read_env():
+    values = {}
+    if os.path.exists(ENV_FILE):
+        with open(ENV_FILE, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                k, v = line.split("=", 1)
+                values[k.strip()] = v.strip()
+    return values
+
+
+def write_env(new_values):
+    """Merge new values into .env, preserving existing keys/comments order."""
+    existing = read_env()
+    merged = dict(existing)
+    for k, v in new_values.items():
+        merged[k] = v
+
+    lines = [
+        "# API Keys for Lead Discovery & Enrichment",
+        f"EXA_API_KEY={merged.get('EXA_API_KEY', '')}",
+        f"APIFY_API_TOKEN={merged.get('APIFY_API_TOKEN', '')}",
+        f"HUNTER_API_KEY={merged.get('HUNTER_API_KEY', '')}",
+        f"PROSPEO_API_KEY={merged.get('PROSPEO_API_KEY', '')}",
+        "",
+        "# Sender Email Settings",
+        f"SENDER_EMAIL={merged.get('SENDER_EMAIL', '')}",
+        f"GMAIL_APP_PASSWORD={merged.get('GMAIL_APP_PASSWORD', '')}",
+    ]
+    if merged.get("CV_PATH"):
+        lines += ["", "# Resume / CV file used for attachments", f"CV_PATH={merged['CV_PATH']}"]
+
+    with open(ENV_FILE, "w", encoding="utf-8") as f:
+        f.write("\n".join(lines) + "\n")
+
+    reload_config()
+
+
+def reload_config():
+    """Re-read .env into the pipeline's config + environment, and reset any
+    cached service clients so new credentials take effect immediately."""
+    values = read_env()
+    # Refresh the shared Config object used across the pipeline modules.
+    config_module.config.env = dict(values)
+    for k, v in values.items():
+        os.environ[k] = v
+    # Reset cached service singletons so they re-init with fresh keys.
+    pipeline.exa = None
+    pipeline.apify = None
+    pipeline.sender = None
+    # Allow a custom CV path to flow into both pipelines.
+    cv = values.get("CV_PATH")
+    if cv:
+        pipeline.CV_PATH = cv
+        followup.CV_PATH = cv
+
+
+def cv_path():
+    return getattr(pipeline, "CV_PATH", "")
+
