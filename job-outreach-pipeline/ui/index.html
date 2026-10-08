@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Outreach Control Panel</title>
+  <link rel="stylesheet" href="/style.css" />
+  <link rel="icon"
+        href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%9A%80%3C/text%3E%3C/svg%3E" />
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand-mark">🚀</span>
+      <div>
+        <div class="brand-name">Outreach</div>
+        <div class="brand-sub">Control Panel</div>
+      </div>
+    </div>
+    <nav id="nav">
+      <button class="nav-item active" data-view="dashboard"><span>📊</span> Dashboard</button>
+      <button class="nav-item" data-view="actions"><span>⚡</span> Run Pipeline</button>
+      <button class="nav-item" data-view="queue"><span>📋</span> Queue</button>
+      <button class="nav-item" data-view="followups"><span>🔁</span> Follow-ups</button>
+      <button class="nav-item" data-view="letters"><span>📄</span> Letters</button>
+      <button class="nav-item" data-view="logs"><span>🧾</span> Send Log</button>
+      <button class="nav-item" data-view="settings"><span>⚙️</span> Settings</button>
+    </nav>
+    <div class="sidebar-foot">
+      <button id="theme-toggle" class="ghost-btn" title="Toggle theme">🌙 Theme</button>
+      <div class="hint">Running locally · <span id="conn-dot" class="dot ok"></span><span id="conn-text">connected</span></div>
+    </div>
+  </aside>
+
+  <main class="content">
+    <!-- DASHBOARD -->
+    <section class="view active" id="view-dashboard">
+      <header class="view-head">
+        <h1>Dashboard</h1>
+        <p class="muted">Your campaign at a glance. The pipeline flows left to right: discover → enrich → review → send → follow up.</p>
+      </header>
+
+      <div id="setup-banner" class="banner hidden"></div>
+
+      <div class="stat-grid" id="stat-grid"></div>
+
+      <div class="cards-2">
+        <div class="card">
+          <h3>Pipeline flow</h3>
+          <div class="flow">
+            <div class="flow-step"><span class="flow-num">1</span><div><b>Search</b><small>Find companies</small></div></div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step"><span class="flow-num">2</span><div><b>Scrape</b><small>Find emails</small></div></div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step"><span class="flow-num">3</span><div><b>Review</b><small>Approve targets</small></div></div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step"><span class="flow-num">4</span><div><b>Send</b><small>Cold emails</small></div></div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step"><span class="flow-num">5</span><div><b>Follow&nbsp;up</b><small>After 6 days</small></div></div>
+          </div>
+          <button class="primary-btn" data-goto="actions">Open the pipeline runner →</button>
+        </div>
+
+        <div class="card">
+          <h3>Setup checklist</h3>
+          <ul class="checklist" id="checklist"></ul>
+        </div>
+      </div>
+    </section>
+
